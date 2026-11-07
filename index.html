@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Info Registrasi Reuni FEB UGM 2001</title>
+
+  <!-- Open Graph / WhatsApp Preview Meta Tags -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://project-re-connect-feb-01.netlify.app/">
+  <meta property="og:title" content="Info Registrasi Reuni FEB UGM 2001">
+  <meta property="og:description" content="Update statistik pendaftaran dan progres donasi Reuni FEB UGM 2001.">
+  <meta property="og:image" content="https://project-re-connect-feb-01.netlify.app/gedung-feb.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+
+  <!-- Library Chart.js & PapaParse -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f0f2f5;
+      color: #333;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #1a365d;
+    }
+
+    /* Banner Pengumuman Batas Pembayaran */
+    .deadline-banner {
+      background: linear-gradient(135deg, #c53030, #9b2c2c);
+      color: white;
+      text-align: center;
+      padding: 15px 20px;
+      border-radius: 12px;
+      max-width: 1160px;
+      margin: 0 auto 25px auto;
+      box-shadow: 0 4px 12px rgba(197, 48, 48, 0.25);
+      font-size: 1.05rem;
+      font-weight: 500;
+    }
+
+    .deadline-banner strong {
+      font-size: 1.15rem;
+      text-decoration: underline;
+      color: #fff5f5;
+    }
+
+    /* Container Target Donasi */
+    .target-donasi-card {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      max-width: 1150px;
+      margin: 0 auto 25px auto;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .target-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .target-header h2 {
+      margin: 0;
+      color: #2b6cb0;
+      font-size: 1.3rem;
+    }
+
+    .target-amount {
+      font-size: 1.1rem;
+      color: #4a5568;
+    }
+
+    .target-amount strong {
+      color: #2f855a;
+      font-size: 1.4rem;
+    }
+
+    /* Progress Bar */
+    .progress-bar-bg {
+      background-color: #e2e8f0;
+      border-radius: 20px;
+      height: 25px;
+      width: 100%;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-bar-fill {
+      background: linear-gradient(90deg, #38a169, #48bb78);
+      height: 100%;
+      width: 0%;
+      border-radius: 20px;
+      transition: width 1s ease-in-out;
+    }
+
+    .progress-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #1a202c;
+      font-weight: bold;
+      font-size: 0.85rem;
+    }
+
+    .donasi-detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px dashed #e2e8f0;
+      font-size: 0.9rem;
+      color: #718096;
+    }
+
+    /* Kotak Disclaimer Transparansi */
+    .disclaimer-box {
+      background-color: #ebf8ff;
+      border-left: 4px solid #3182ce;
+      padding: 12px 16px;
+      margin-top: 20px;
+      border-radius: 0 8px 8px 0;
+      font-size: 0.88rem;
+      color: #2c5282;
+      line-height: 1.5;
+    }
+
+    .disclaimer-box strong {
+      color: #1a365d;
+    }
+
+    /* Grid Stat Cards */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 15px;
+      max-width: 1200px;
+      margin: 0 auto 25px auto;
+    }
+
+    .summary-card {
+      color: white;
+      padding: 18px 15px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    }
+
+    .summary-card.total { background: linear-gradient(135deg, #2b6cb0, #2c5282); }
+    .summary-card.hadir { background: linear-gradient(135deg, #2f855a, #276749); }
+    .summary-card.stat-today { background: linear-gradient(135deg, #dd6b20, #c05621); }
+    .summary-card.stat-7days { background: linear-gradient(135deg, #805ad5, #6b46c1); }
+
+    .summary-card h2 {
+      margin: 0 0 8px 0;
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+
+    .summary-card .amount {
+      font-size: 1.8rem;
+      font-weight: bold;
+      margin: 0;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .card h3 {
+      margin-top: 0;
+      margin-bottom: 15px;
+      text-align: center;
+      color: #2b6cb0;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 350px;
+      width: 100%;
+    }
+
+    #loading {
+      text-align: center;
+      font-size: 1.2rem;
+      color: #4a5568;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🎉 Progress Registrasi Reuni FEB UGM 2001</h1>
+
+  <!-- Banner Peringatan Batas Akhir Pembayaran -->
+  <div class="deadline-banner">
+    ⚠️ <strong>Penting:</strong> Batas akhir pembayaran pendaftaran dan donasi adalah tanggal <strong>15 November 2026</strong>.
+  </div>
+
+  <div id="loading">Memuat data...</div>
+
+  <!-- Card Target Donasi & Disclaimer -->
+  <div class="target-donasi-card">
+    <div class="target-header">
+      <h2>💚 Target Donasi Reuni</h2>
+      <div class="target-amount">
+        Terkumpul: <strong id="totalDonasiCombined">Rp 0</strong> / Rp 50.000.000
+      </div>
+    </div>
+    
+    <div class="progress-bar-bg">
+      <div class="progress-bar-fill" id="progressFill"></div>
+      <div class="progress-text" id="progressPercent">0%</div>
+    </div>
+
+    <div class="donasi-detail-grid">
+      <div>Online (Verified): <strong id="donasiOnline">Rp 0</strong></div>
+      <div>Offline: <strong>Rp 10.000.000</strong></div>
+      <div>Kekurangan: <strong id="donasiSisa">Rp 0</strong></div>
+    </div>
+
+    <!-- Catatan Transparansi / Disclaimer -->
+    <div class="disclaimer-box">
+      🔒 <strong>Komitmen Panitia:</strong> Seluruh penerimaan pembayaran pendaftaran dan donasi dikelola secara profesional, transparan, dan akuntabel. Laporan pertanggungjawaban (LPJ) keuangan lengkap akan disusun dan dilaporkan terbuka kepada seluruh alumni setelah rangkaian acara selesai.
+    </div>
+  </div>
+
+  <!-- Stat Cards Kehadiran & Pendaftar -->
+  <div class="summary-grid">
+    <div class="summary-card total">
+      <h2>Total Registrasi</h2>
+      <div class="amount" id="totalPeserta">0 Alumni</div>
+    </div>
+
+    <div class="summary-card hadir">
+      <h2>Konfirmasi Hadir</h2>
+      <div class="amount" id="totalHadir">0 Alumni</div>
+    </div>
+
+    <div class="summary-card stat-today">
+      <h2>Hari Ini</h2>
+      <div class="amount" id="countToday">0 Baru</div>
+    </div>
+
+    <div class="summary-card stat-7days">
+      <h2>7 Hari Terakhir</h2>
+      <div class="amount" id="countLast7Days">0 Baru</div>
+    </div>
+  </div>
+
+  <div class="dashboard-grid">
+    <!-- Chart: Sebaran Wilayah Peserta Hadir -->
+    <div class="card">
+      <h3>Sebaran Peserta Konfirmasi Hadir per Wilayah (Domisili)</h3>
+      <div class="chart-container">
+        <canvas id="domisiliHadirChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const sheetCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSCmoWYJKJgTSFesPS9H7wuJWCwHZTmdiODINRsykcj-nVVbssZdXtREKIS7D-Zk5UxOX-YE1MYcXg_/pub?output=csv';
+
+    const DONASI_OFFLINE = 10000000;
+    // Target donasi will be calculated from sheet column 'Verifikasi BRIMO'
+let TARGET_DONASI = 0;
+
+    function parseRupiah(val) {
+      if (!val) return 0;
+      const cleanStr = String(val).replace(/[^\d]/g, '');
+      const parsed = parseInt(cleanStr, 10);
+      return isNaN(parsed) ? 0 : parsed;
+    }
+
+    function loadCsvData() {
+      Papa.parse(sheetCsvUrl, {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          document.getElementById('loading').style.display = 'none';
+          const rawData = results.data;
+          renderPublicDashboard(rawData);
+        },
+        error: function(err) {
+          document.getElementById('loading').innerText = 'Gagal memuat data.';
+          console.error("PapaParse Error:", err);
+        }
+      });
+    }
+
+    function renderPublicDashboard(data) {
+      let totalDonasiOnline = 0;
+      let totalHadir = 0;
+let targetFromSheet = 0;
+if (data.length > 0) {
+  targetFromSheet = parseRupiah(data[0]['Verifikasi BRIMO']);
+}
+// Update target donation amount from sheet column if available
+TARGET_DONASI = targetFromSheet > 0 ? targetFromSheet : TARGET_DONASI;
+
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const sevenDaysAgo = new Date(today);
+      sevenDaysAgo.setDate(today.getDate() - 6);
+
+      let countToday = 0;
+      let countLast7Days = 0;
+
+      data.forEach(row => {
+        const status = row['Status Kehadiran'] || 'Belum Diisi';
+        if (status === 'Hadir') totalHadir++;
+
+        totalDonasiOnline += parseRupiah(row['Verifikasi BRIMO']);
+
+        if (row['Timestamp']) {
+          const rowDate = new Date(row['Timestamp']);
+          if (!isNaN(rowDate)) {
+            const dateOnly = new Date(rowDate.getFullYear(), rowDate.getMonth(), rowDate.getDate());
+            if (dateOnly.getTime() === today.getTime()) countToday++;
+            if (dateOnly >= sevenDaysAgo && dateOnly <= today) countLast7Days++;
+          }
+        }
+      });
+
+      // Donasi Progress Bar
+      const totalDonasiCombined = totalDonasiOnline + DONASI_OFFLINE;
+      const sisaTarget = Math.max(0, TARGET_DONASI - totalDonasiCombined);
+      const percentage = Math.min(100, ((totalDonasiCombined / TARGET_DONASI) * 100)).toFixed(1);
+
+      document.getElementById('totalDonasiCombined').innerText = 'Rp ' + totalDonasiCombined.toLocaleString('id-ID');
+      document.getElementById('donasiOnline').innerText = 'Rp ' + totalDonasiOnline.toLocaleString('id-ID');
+      document.getElementById('donasiSisa').innerText = 'Rp ' + sisaTarget.toLocaleString('id-ID');
+      
+      document.getElementById('progressFill').style.width = percentage + '%';
+      document.getElementById('progressPercent').innerText = percentage + '% Terkumpul';
+
+      // Stat Cards
+      document.getElementById('totalPeserta').innerText = data.length + ' Alumni';
+      document.getElementById('totalHadir').innerText = totalHadir + ' Alumni';
+      document.getElementById('countToday').innerText = countToday + ' Baru';
+      document.getElementById('countLast7Days').innerText = countLast7Days + ' Baru';
+
+      // Chart: Khusus Wilayah yang Confirm HADIR
+      const domisiliHadirMap = {};
+      data.forEach(row => {
+        const status = row['Status Kehadiran'] || 'Belum Diisi';
+        if (status === 'Hadir') {
+          const domisili = row['Domisili'] || 'Lainnya';
+          domisiliHadirMap[domisili] = (domisiliHadirMap[domisili] || 0) + 1;
+        }
+      });
+
+      new Chart(document.getElementById('domisiliHadirChart'), {
+        type: 'bar',
+        data: {
+          labels: Object.keys(domisiliHadirMap),
+          datasets: [
+            {
+              label: 'Jumlah Peserta Hadir',
+              data: Object.values(domisiliHadirMap),
+              backgroundColor: '#38a169'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { stepSize: 1 }
+            }
+          }
+        }
+      });
+    }
+
+    loadCsvData();
+  </script>
+</body>
+</html>
